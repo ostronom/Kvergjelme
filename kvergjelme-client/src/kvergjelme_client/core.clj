@@ -28,24 +28,25 @@
 (defn- run-stream-loop
   [fps ^IContainer container robot area converter ^IStreamCoder vencoder ^IVideoResampler vresampler]
   (let [first-timestamp   (System/currentTimeMillis)
-        out-packet        (IPacket/make)]
+        out-packet        (IPacket/make)
+        resampled-picture (IVideoPicture/make
+                            (.getOutputPixelFormat vresampler)
+                            (.getOutputWidth vresampler)
+                            (.getOutputHeight vresampler))]
     (while true
       (let [timestamp  (* (- (System/currentTimeMillis) first-timestamp) 1000)
             in-picture (robot/get-screenshot-frame robot area converter timestamp)
-            out-packet (IPacket/make)
-            resampled-picture (IVideoPicture/make
-                                (.getOutputPixelFormat vresampler)
-                                (.getOutputWidth vresampler)
-                                (.getOutputHeight vresampler))]
-        (.resample vresampler resampled-picture in-picture)
-        (if (>= (.encodeVideo vencoder out-packet resampled-picture 0) 0)
-          (do
-            (.delete resampled-picture)
-            (if (.isComplete out-packet)
-              (let [ret-val (.writePacket container out-packet true)]
-                (if (< ret-val 0)
-                  (println (str "Packet failure: " (IError/make ret-val)))))))
-          (throw (RuntimeException. "Encoding video error [core/run-stream-loop]")))))))
+            out-packet (IPacket/make)]
+        (do
+          (.resample vresampler resampled-picture in-picture)
+          (let [enc-ret-val (.encodeVideo vencoder out-packet resampled-picture 0)]
+            ;(.delete resampled-picture)
+            (if (>= enc-ret-val 0)
+              (if (.isComplete out-packet)
+                (let [pack-ret-val (.writePacket container out-packet true)]
+                  (if (< pack-ret-val 0)
+                    (println (str "Packet failure: " (IError/make pack-ret-val))))))
+              (throw (RuntimeException. "Encoding video error [core/run-stream-loop]")))))))))
 
 
 (defn- grab-and-stream
