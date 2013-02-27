@@ -30,6 +30,6 @@
       (.setFlag IStreamCoder$Flags/FLAG_QSCALE true))))
 
 (defn make-resampler
-  [out-width out-height in-width in-height]
+  [in-width in-height out-width out-height]
   (IVideoResampler/make out-width out-height IPixelFormat$Type/YUV420P 
                         in-width in-height IPixelFormat$Type/YUV420P))

@@ -1,10 +1,16 @@
 (ns kvergjelme-client.core
-  (:require [kvergjelme-client.video :as video]
+  (:use [clojure.data.zip.xml :only (attr text xml->)])
+  (:require [clojure.xml :as xml]
+            [clojure.zip :as zip]
+            [kvergjelme-client.video :as video]
             [kvergjelme-client.audio :as audio]
             [kvergjelme-client.robot :as robot])
   (:import [com.xuggle.xuggler
-            IContainer IContainerFormat IPacket IVideoPicture
-            IContainer$Type]))
+            IContainer IContainerFormat IPacket IVideoPicture IError
+            IContainer$Type])
+  (:gen-class))
+
+(defrecord Config [url width height fps])
 
 (defn- make-output-container
   [url format-name]
@@ -17,42 +23,56 @@
 
 (defn- run-stream-loop
   [fps container robot area converter vencoder vresampler]
-  (let [first-timestamp (System/currentTimeMillis)
-        resampled-picture (IVideoPicture/make
-                            (.getOutputPixelFormat vresampler)
-                            (.getOutputWidth vresampler)
-                            (.getOutputHeight vresampler))]
+  (let [first-timestamp   (System/currentTimeMillis)
+        out-packet        (IPacket/make)]
     (while true
-      (let [timestamp (* (- (System/currentTimeMillis) first-timestamp) 1000)
+      (let [timestamp  (* (- (System/currentTimeMillis) first-timestamp) 1000)
             in-picture (robot/get-screenshot-frame robot area converter timestamp)
-            out-packet (IPacket/make)]
-        ;(.resample vresampler resampled-picture in-picture)
-        (if (>= (.encodeVideo vencoder out-packet in-picture 0) 0)
-          (if (.isComplete out-packet) 
-            (if (>= (.writePacket container out-packet true) 0)
-              (println "Packet sent")
-              (println "Packet failure")))
+            out-packet (IPacket/make)
+            resampled-picture (IVideoPicture/make
+                                (.getOutputPixelFormat vresampler)
+                                (.getOutputWidth vresampler)
+                                (.getOutputHeight vresampler))]
+        (.resample vresampler resampled-picture in-picture)
+        (if (>= (.encodeVideo vencoder out-packet resampled-picture 0) 0)
+          (do
+            (.delete resampled-picture)
+            (if (.isComplete out-packet)
+              (let [ret-val (.writePacket container out-packet true)]
+                (if (< ret-val 0)
+                  (println (str "Packet failure: " (IError/make ret-val)))))))
           (throw (RuntimeException. "Encoding video error [core/run-stream-loop]")))))))
 
 
 (defn- grab-and-stream
-  [fps input-width input-height output-width output-height]
-  (let [vdecoder (video/make-decoder fps input-width input-height)
-        adecoder (audio/make-decoder)
-        vresampler (video/make-resampler input-width input-height output-width output-height)
-        aresampler (audio/make-resampler)
-        container (make-output-container "rtmp://localhost:1935/live" "flv")
-        vencoder (video/make-encoder container fps output-width output-height)
-        robot (robot/start)
-        area (robot/capture-area 1280 760)
-        converter (robot/create-converter area)]
+  [config]
+  (let [robot         (robot/start)
+        area          (robot/capture-area)
+        input-width   (.width area)
+        input-height  (.height area)
+        output-width  (:width config)
+        output-height (:height config)
+        vresampler    (video/make-resampler input-width input-height output-width output-height)
+        ;aresampler    (audio/make-resampler)
+        container     (make-output-container (:url config) "flv")
+        vencoder      (video/make-encoder container (:fps config) output-width output-height)
+        converter     (robot/create-converter area)]
     (if (>= (.open vencoder) 0)
       (do
         (.writeHeader container)
-        (run-stream-loop fps container robot area converter vencoder vresampler)
+        (run-stream-loop (:fps config) container robot area converter vencoder vresampler)
         (.writeTrailer container))
       (throw (RuntimeException. "Unable to open encoder. [core/run]")))))
 
+(defn- get-config
+  [filename]
+  (let [zipped (zip/xml-zip (xml/parse filename))]
+    (Config.
+      (text (first (xml-> zipped :stream :url)))
+      (Integer/parseInt (text (first (xml-> zipped :stream :width))))
+      (Integer/parseInt (text (first (xml-> zipped :stream :height))))
+      (Integer/parseInt (text (first (xml-> zipped :stream :fps)))))))
+
 (defn -main
   []
-  (grab-and-stream 25 1280 760 1280 760))
+  (grab-and-stream (get-config "config.xml")))

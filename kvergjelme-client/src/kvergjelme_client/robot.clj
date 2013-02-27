@@ -1,6 +1,7 @@
 (ns kvergjelme-client.robot
   (:import [java.awt
             Rectangle AWTException Robot]
+           [java.awt Toolkit]
            [java.awt.image BufferedImage]
            [com.xuggle.xuggler IVideoPicture IPixelFormat$Type]
            [com.xuggle.xuggler.video ConverterFactory IConverter]))
@@ -12,11 +13,14 @@
     (new Robot)
     (catch AWTException e
       (throw (RuntimeException.
-        (str "Unable to instantiate monitoring bot" (.getMessage e) " [robot/start]"))))))
+        (str "Unable to instantiate monitoring bot " (.getMessage e) " [robot/start]"))))))
 
 (defn capture-area
-  [width height]
-  (Rectangle. width height))
+  []
+  (let [screen-size (.getScreenSize (Toolkit/getDefaultToolkit))]
+    (Rectangle.
+      (.width screen-size)
+      (.height screen-size))))
 
 (defn create-converter
   [rect]
