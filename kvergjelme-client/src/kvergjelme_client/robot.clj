@@ -43,7 +43,7 @@
         new-image))))
 
 (defn- get-screenshot
-  [robot rect]
+  [^Robot robot ^Rectangle rect]
   (cast-image (.createScreenCapture robot rect) BufferedImage/TYPE_3BYTE_BGR))
 
 (defn get-screenshot-frame

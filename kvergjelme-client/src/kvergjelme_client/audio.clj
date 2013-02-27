@@ -3,6 +3,8 @@
             IStreamCoder IAudioResampler IRational
             IStreamCoder$Direction ICodec$ID]))
 
+(set! *warn-on-reflection* true)
+
 (defn make-decoder
   []
   (doto (IStreamCoder/make IStreamCoder$Direction/DECODING)

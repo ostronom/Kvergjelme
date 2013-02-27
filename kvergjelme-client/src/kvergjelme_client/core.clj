@@ -12,6 +12,8 @@
            [java.awt Rectangle])
   (:gen-class))
 
+(set! *warn-on-reflection* true)
+
 (defrecord Config [url width height fps])
 
 (defn- make-output-container
