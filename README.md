@@ -1,6 +1,6 @@
 # kvergjelme
 
-kvergjelme-client -- screen streaming application.
+kvergjelme-client -- screen streaming application.  
 kvergjelme-server -- _to be written_ ...
 
 ## License
