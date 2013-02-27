@@ -1,10 +1,6 @@
-# kvergjelme
+# kvergjelme-client
 
-A Clojure library designed to ... well, that part is up to you.
-
-## Usage
-
-FIXME
+A Clojure application designed to capture users screen and stream it via RTMP to remote server.
 
 ## License
 

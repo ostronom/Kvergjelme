@@ -47,5 +47,5 @@
   (cast-image (.createScreenCapture robot rect) BufferedImage/TYPE_3BYTE_BGR))
 
 (defn get-screenshot-frame
-  [robot rect converter timestamp]
+  [^Robot robot ^Rectangle rect ^IConverter converter timestamp]
   (.toPicture converter (get-screenshot robot rect) timestamp))
