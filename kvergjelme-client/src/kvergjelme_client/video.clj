@@ -1,7 +1,9 @@
 (ns kvergjelme-client.video
   (:import [com.xuggle.xuggler
-            IStreamCoder IRational IVideoResampler
+            IStream IStreamCoder IRational IVideoResampler IContainer
             ICodec$ID IStreamCoder$Direction IStreamCoder$Flags IPixelFormat$Type]))
+
+(set! *warn-on-reflection* true)
 
 (defn make-decoder
   [fps width height]
@@ -14,9 +16,9 @@
     (.setFrameRate (IRational/make fps 1))))
 
 (defn make-encoder
-  [container fps width height]
+  [^IContainer container fps width height]
   (let [stream (.addNewStream container 0)
-        codec  (.getOutputDefaultVideoCodec (.getContainerFormat container))]
+        ^ICodec$ID codec (.getOutputDefaultVideoCodec (.getContainerFormat container))]
     (doto (.getStreamCoder stream)
       (.setCodec codec)
       (.setWidth width)

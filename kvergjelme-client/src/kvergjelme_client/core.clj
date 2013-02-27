@@ -6,14 +6,16 @@
             [kvergjelme-client.audio :as audio]
             [kvergjelme-client.robot :as robot])
   (:import [com.xuggle.xuggler
-            IContainer IContainerFormat IPacket IVideoPicture IError
-            IContainer$Type])
+            IContainer IContainerFormat IPacket IVideoPicture
+            IError IVideoResampler IStreamCoder
+            IContainer$Type]
+           [java.awt Rectangle])
   (:gen-class))
 
 (defrecord Config [url width height fps])
 
 (defn- make-output-container
-  [url format-name]
+  [^String url ^String format-name]
   (let [out-container (IContainer/make)
         out-format    (doto (IContainerFormat/make) (.setOutputFormat format-name url nil))]
     (try
@@ -22,7 +24,7 @@
         (throw (RuntimeException. "Could not open output container. [core/make-output]"))))))
 
 (defn- run-stream-loop
-  [fps container robot area converter vencoder vresampler]
+  [fps ^IContainer container robot area converter ^IStreamCoder vencoder ^IVideoResampler vresampler]
   (let [first-timestamp   (System/currentTimeMillis)
         out-packet        (IPacket/make)]
     (while true
@@ -45,17 +47,17 @@
 
 
 (defn- grab-and-stream
-  [config]
+  [^Config config]
   (let [robot         (robot/start)
-        area          (robot/capture-area)
+        ^Rectangle area (robot/capture-area)
         input-width   (.width area)
         input-height  (.height area)
         output-width  (:width config)
         output-height (:height config)
         vresampler    (video/make-resampler input-width input-height output-width output-height)
         ;aresampler    (audio/make-resampler)
-        container     (make-output-container (:url config) "flv")
-        vencoder      (video/make-encoder container (:fps config) output-width output-height)
+        ^IContainer container     (make-output-container (:url config) "flv")
+        ^IStreamCoder vencoder      (video/make-encoder container (:fps config) output-width output-height)
         converter     (robot/create-converter area)]
     (if (>= (.open vencoder) 0)
       (do

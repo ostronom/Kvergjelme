@@ -6,6 +6,8 @@
            [com.xuggle.xuggler IVideoPicture IPixelFormat$Type]
            [com.xuggle.xuggler.video ConverterFactory IConverter]))
 
+(set! *warn-on-reflection* true)
+
 (defn start
   " Start desktop monitoring bot. "
   []
@@ -23,7 +25,7 @@
       (.height screen-size))))
 
 (defn create-converter
-  [rect]
+  [^Rectangle rect]
   (ConverterFactory/createConverter 
     "XUGGLER-BGR-24"
     IPixelFormat$Type/YUV420P
@@ -31,7 +33,7 @@
     (.getHeight rect)))
 
 (defn- cast-image
-  [image target-type]
+  [^BufferedImage image target-type]
   (if (= (.getType image) target-type)
     image
     (let [new-image (BufferedImage. (.getWidth image) (.getHeight image) target-type)
