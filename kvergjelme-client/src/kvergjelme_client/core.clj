@@ -1,6 +1,7 @@
 (ns kvergjelme-client.core
   (:use [clojure.data.zip.xml :only (attr text xml->)])
-  (:require [clojure.xml :as xml]
+  (:require [kvergjelme-client.ui :as ui]
+            [clojure.xml :as xml]
             [clojure.zip :as zip]
             [kvergjelme-client.video :as video]
             [kvergjelme-client.audio :as audio]
@@ -80,4 +81,5 @@
 
 (defn -main
   []
-  (grab-and-stream (get-config "config.xml")))
+  ;(grab-and-stream (get-config "config.xml")))
+  (ui/start-ui))

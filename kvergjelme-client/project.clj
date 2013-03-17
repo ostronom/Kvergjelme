@@ -10,4 +10,5 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojure/data.zip "0.1.0"]
                  ;[org.clojars.remleduff/javacv "20100416"]
+                 [seesaw "1.4.2"]
                  [xuggle/xuggle-xuggler "5.4"]])
