@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<config>
-  <stream>
-    <url>rtmp://localhost:1935/live</url>
-    <width>1280</width>
-    <height>720</height>
-    <fps>25</fps>
-  </stream>
-</config>
