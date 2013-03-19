@@ -16,18 +16,45 @@ object statusIndicator extends Label {
 	text = "[оффлайн]"
 }
 
+object sinkURLInput extends TextField {
+	text = "rtmp://<ADDRESS>:1975"
+}
+
 class KvergjelmeFrame extends MainFrame with Publisher {
+	private var region = new Rectangle(0, 0, 640, 360)
+	private val streamer = new Streamer
 	title = "Kvergjelme Client"
-	contents = new BoxPanel( Orientation.Horizontal ) {
-		contents += chooseCapturingRegion
-		contents += toggleStreaming
-		contents += statusIndicator
+	contents = new BoxPanel( Orientation.Vertical ) {
+		contents += new BoxPanel( Orientation.Horizontal ) {
+			contents += new Label("Адрес вещания")
+			contents += sinkURLInput
+			contents += new Button {
+				text = "Установить"
+				reactions += {
+					case e: ButtonClicked => streamer ! new StreamingURLChange(sinkURLInput.text)
+				}
+			}
+		}
+		contents += new BoxPanel( Orientation.Horizontal ) {
+			contents += chooseCapturingRegion
+			contents += toggleStreaming
+			contents += statusIndicator
+		}
 	}
 	listenTo(chooseCapturingRegion, toggleStreaming)
 	reactions += {
 		case ButtonClicked(`chooseCapturingRegion`) =>
-			new CapturingFrame
+			val capturer = new CapturingFrame(region)
+			listenTo(capturer)
+			reactions += {
+				case CaptureRegionChange(newRegion) =>
+					region = newRegion
+					streamer ! new CaptureRegionChange(region)
+					toggleStreaming.enabled = true
+			}
 		case ButtonClicked(`toggleStreaming`) =>
-			println("toggleStreaming button clicked")
+			streamer ! new StreamingStateChange(toggleStreaming.selected)
 	}
+
+	streamer.start
 }

@@ -3,26 +3,32 @@ package h359.kvergjelme.client
 import swing._
 import swing.Swing._
 import swing.event._
-import java.awt.{Point, Dimension, Color, Cursor}
+import java.awt.{Point, Dimension, Rectangle, Color, Cursor}
 import javax.swing.{SwingUtilities}
 
-class CapturingFrame extends Frame {
+class CapturingFrame(region: Rectangle) extends Frame with Publisher {
 	peer.setAlwaysOnTop(true)
 	peer.setUndecorated(true)
 	background = new Color(0, 0, 0, 0.5f)
-	preferredSize  = new Dimension(640, 360)
+	preferredSize = region.getSize
+	location = region.getLocation
 	visible = true
-	var originX:Int = 0
-	var originY:Int = 0
-	var isResizing:Boolean = false
-	val parentPeer = peer
+	private var originX:Int = 0
+	private var originY:Int = 0
+	private var isResizing:Boolean = false
+	private val me:Frame = this
 
 	// we need panel here to gain access to mouse events
-	val virtualPanel = new Panel {
-		preferredSize  = new Dimension(640, 360)
+	private val virtualPanel = new Panel {
+		focusable = true
+		preferredSize = region.getSize
 		background = new Color(0, 0, 0, 0.5f)
-		listenTo(mouse.clicks, mouse.moves)
+		listenTo(mouse.clicks, mouse.moves, keys)
 		reactions += {
+			case KeyPressed(_, Key.Enter,_, _) =>
+				val newRegion = new Rectangle(me.location, me.size)
+				me.publish(new CaptureRegionChange(newRegion))
+				me.close()
 			case e: MouseMoved =>
 				val brCorner = new Point { x = size.getWidth.intValue; y = size.getHeight.intValue }
 				if (e.point.distance(brCorner) <= 10) {
@@ -44,15 +50,15 @@ class CapturingFrame extends Frame {
 			case e: MouseDragged =>
 				if (isResizing) {
 					// flip on negative size is not supported
-					val tlCorner = parentPeer.getLocationOnScreen()
+					val tlCorner = me.peer.getLocationOnScreen()
 					val newX = e.peer.getXOnScreen - tlCorner.x
 					val newY = e.peer.getYOnScreen - tlCorner.y
 					if (newX > 10 && newY > 10) {
-						parentPeer.setSize(new Dimension(newX, newY))
+						me.peer.setSize(new Dimension(newX, newY))
 					}
 				}
 				else {
-					parentPeer.setLocation(e.peer.getXOnScreen - originX, e.peer.getYOnScreen - originY)
+					me.peer.setLocation(e.peer.getXOnScreen - originX, e.peer.getYOnScreen - originY)
 				}
 			case e: MouseReleased =>
 				if (isResizing) {
